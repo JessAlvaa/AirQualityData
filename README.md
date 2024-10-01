@@ -12,7 +12,7 @@ Explore the live dashboard here : [Air Quality Dashboard](https://airquality-das
 - Plotly
 
 ## Data Source
-The air quality data used in this project was obtained from the Aotizhongxin Station. The dataset contains measurements of various air pollutant with a focus on PM2.5, along with meteorogical factors such as direction and wind speed.
+The air quality data used in this project was obtained from the Aotizhongxin Station. The dataset contains measurements of various air pollutant with a focus on PM2.5. The goal is to identify patterns, seasonal fluctuations, and how various weather conditions affect the air quality.
 
 ## Key Insight
 - The analysis reveals a clear seasonal pattern in pollutant levels with PM2.5 concentrations peaking during winter months
@@ -50,3 +50,6 @@ The air quality data used in this project was obtained from the Aotizhongxin Sta
   ```bash
   streamlit run dashboard.py
   ```
+
+## Additional Files
+A detailed Python notebook [Air_Quality_Analysis_Jessica.ipnyb](https://colab.research.google.com/drive/1S9EFncpjVRqvUGlahma5PQHKFsSmoOXa?usp=sharing) contains data analysis and visualization.
