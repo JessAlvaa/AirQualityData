@@ -82,6 +82,6 @@ st.pyplot(fig)
 st.subheader('Conclusion')
 st.write(""" 
 - The dashboard provides an overview of PM2.5 levels across different years and wind directions.
-- This analysis helps monitor and understand how PM2.5 levels are affected by wind conditions.
+- Provides insight the distribution of air quality and wind affects, assisting in monitoring and mitigating the impact of air pollution
 - Strong wind from the NE direction tends to reduce PM2.5 levels, while low wind from SSE contributes to higher pollution levels.
 """)
