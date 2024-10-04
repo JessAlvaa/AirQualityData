@@ -1,129 +1,78 @@
-#import all the library
+import streamlit as st
 import pandas as pd
 import matplotlib.pyplot as plt
 import matplotlib.cm as cm
 import seaborn as sns
-import streamlit as st
 import numpy as np
-import plotly.express as px
-sns.set(style='dark')
 
-# Load the dataset
-data = pd.read_csv("Air_Quality_Aotizhongxin.csv")
+# Read data
+air_data = pd.read_csv('Air_Quality_Aotizhongxin.csv')
+
+# Add date column
+air_data['date'] = pd.to_datetime(air_data[['year', 'month', 'day', 'hour']], errors='coerce')
 
 st.title("Air Quality Analysis")
 st.write("This dashboard shows the visualization of air quality data from 2013 until 2017 at Aotizhongxin station.")
 
-# Change to datetime for column date
-data['date'] = pd.to_datetime(data[['year', 'month', 'day', 'hour']], errors='coerce')
+# Filter data for PM2.5 only (pertahankan filter tahun untuk Question 1)
+year = 2017
+data_filter = air_data[air_data['year'] == year]
 
-# Sidebar
-st.sidebar.header("Choose Air Pollutant")
+# Shows filtered data for PM2.5
+st.header(f'Data Overview for Year {year}')
+st.write(data_filter[['date', 'PM2.5', 'TEMP', 'DEWP', 'WSPM']])
 
-# Input to select year
-year = st.sidebar.slider("Years", int(data["year"].min()), int(data["year"].max()), int(data["year"].min()))
+st.header("Question 1")
+st.write("What is the correlation between PM2.5 concentrations and other variables such as temperature, humidity, and wind speed over the past year?")
 
-#Create sidebar 
-pollutant = st.sidebar.selectbox("All Pollutant", ["PM2.5", "PM10", "SO2", "NO2", "CO", "O3"])
+# Heatmap for PM2.5 correlations
+st.subheader(f'Correlation Heatmap for PM2.5 in {year}')
+plt.figure(figsize=(10, 8))
+matrix_corr = data_filter[['PM2.5', 'TEMP', 'DEWP', 'WSPM']].corr()
+sns.heatmap(matrix_corr, annot=True, cmap='coolwarm', fmt=".2f")
+plt.title(f'Correlation Heatmap for PM2.5 in {year}')
+st.pyplot(plt)
 
-# Filter the data
-pollutant_filtered = data[(data["year"] == year)]
-pollutant_filtered = pollutant_filtered.drop(columns=['direction_degrees'])
+# Pairplot
+st.subheader('Pairplot')
+st.write("The pairplot provides a visual comparison of the relationships between PM2.5 and other variables such as temperature (TEMP), dew point (DEWP), and wind speed (WSPM). Each plot in the matrix represents a bivariate relationship between two variables, allowing us to observe patterns or correlations.")
+pairplot_col = ['PM2.5', 'TEMP', 'DEWP', 'WSPM']
+pairplot_fig = sns.pairplot(data_filter[pairplot_col])
+st.pyplot(pairplot_fig.fig)
 
-# Display the dataset
-st.subheader(f"Air Quality Data for {year}")
-st.write(pollutant_filtered)
+# Question 2 - Average PM2.5 by wind direction for all years
+st.header("Question 2")
+st.write("Which wind direction contributed the most to PM2.5 pollution levels from 2013 - 2017 in Aotizhongxin?")
 
-# Correlation Heatmap
-st.subheader("Correlation Heatmap")
-display_heatmap = ['PM2.5', 'PM10', 'SO2', 'NO2', 'CO', 'O3', 'TEMP', 'PRES']
-pollutant_corr = pollutant_filtered[display_heatmap].corr()
-fig, ax = plt.subplots(figsize=(10, 8))
-sns.heatmap(pollutant_corr, annot=True, fmt=".2f", cmap='coolwarm', square=True, ax=ax)
-st.pyplot(fig)
+# Hitung rata-rata PM2.5 berdasarkan arah angin dari seluruh data
+wind_direction_avg = air_data.groupby('wd')['PM2.5'].mean().sort_values(ascending=False)
+st.subheader('Average PM2.5 by Wind Direction from 2013 to 2017')
+plt.figure(figsize=(10, 5))
+plt.bar(wind_direction_avg.index, wind_direction_avg.values, color='green')
+plt.title('Average PM2.5 by Wind Direction from 2013 to 2017')
+plt.xlabel('Wind Direction')
+plt.ylabel('Average PM2.5')
+st.pyplot(plt)
 
-# Histogram
-st.subheader(f"Histogram of {pollutant}")
-fig, ax = plt.subplots(figsize=(10, 5))
-ax.hist(pollutant_filtered[pollutant], bins=20, color='purple')
-ax.set_xlabel(pollutant)
-ax.set_ylabel("Frequency")
-st.pyplot(fig)
-
-# Line graph
-st.subheader(f"Line Graphic for {pollutant}")
-fig, ax = plt.subplots(figsize=(10, 5))
-ax.plot(pollutant_filtered["date"], pollutant_filtered[pollutant], color='purple')
-ax.set_xlabel("Date")
-ax.set_ylabel(pollutant)
-st.pyplot(fig)
-
-# Display Pollutant Average per month
-st.subheader("Pollutant Average per Month")
-month_average = pollutant_filtered.groupby(pollutant_filtered['date'].dt.month)[pollutant].mean()
-# Make sure all the data is in index
-all_months = pd.Index(range(1, 13))
-month_average = month_average.reindex(all_months)
-month_labels = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec']
-fig, ax = plt.subplots(figsize=(8, 6))
-ax.plot(month_average.index, month_average.values, marker='o', color='purple')
-ax.set_xlabel("Month")
-ax.set_ylabel(f"Average {pollutant}")
-ax.set_title(f"Average {pollutant} by Month")
-ax.set_xticks(all_months)
-ax.set_xticklabels(month_labels)
-st.pyplot(fig)
-
-# Count Average Heatmap for PM2.5
-st.subheader('Hourly Averages of PM2.5')
-# Ensure correct data types and handle missing values
-data['hour'] = data['hour'].astype(int)
-data['PM2.5'] = pd.to_numeric(data['PM2.5'], errors='coerce') #handle value that can't be converted to numeric
-data['PM2.5'].ffill(inplace=True)
-hour_average = data.groupby('hour')['PM2.5'].mean()
-# Create the heatmap
-fig, ax = plt.subplots(figsize=(10, 4))
-sns.heatmap(hour_average.to_numpy().reshape(1, -1), annot=False, fmt=".2f", cmap='viridis', cbar=True, ax=ax)
-ax.set_xticklabels(range(24), rotation=45)
-# Hide y-axis label
-ax.set_yticklabels([''])  
-ax.set_xlabel("Hour")
-st.pyplot(fig)
-
-#Rain vs pollutant
-st.subheader(f"Relationship between Rain and {pollutant}")
-fig = px.scatter(pollutant_filtered, x="RAIN", y=pollutant,
-                labels={"RAIN": "Rainfall (mm)", pollutant: pollutant},
-                title=f"Scatter Plot of Rain VS {pollutant}",  color_continuous_scale="Inferno"
-                ) 
-st.plotly_chart(fig)
-
-# Scatter Plot Polutan and Wind
-st.subheader(f"Relationship between Wind and {pollutant}")
-fig = px.scatter(pollutant_filtered, x="WSPM", y="wd", color=pollutant,
-                 labels={"WSPM": "Wind Speed (m/s)" ,"wd": "Wind Direction"},
-                 title=f"Scatter Plot of Wind VS {pollutant}")
-st.plotly_chart(fig)
-
-
-#Wind Direction
-st.subheader('Wind Direction')
-wind_data = pollutant_filtered.groupby('wd')[pollutant].mean()
-fig = plt.figure(figsize=(5,6))
-colors = cm.Blues(wind_data.values/max(wind_data.values))
+# Wind Direction Distribution
+st.subheader('Wind Direction Distribution for PM2.5')
+wind_data = air_data.groupby('wd')['PM2.5'].mean()
+fig = plt.figure(figsize=(8, 6))
+colors = cm.Blues(wind_data.values / max(wind_data.values))
 ax = fig.add_subplot(111, polar=True)
-#convert wd to theta for polar plot
-theta = np.linspace(0, 2 * np.pi, len(wind_data))
-bars = ax.bar(theta, wind_data.values, align='center', color = colors, alpha=0.5)
-plt.title(f"{pollutant} Levels by Wind")
-st.pyplot(fig)
 
+# Convert wd to theta for polar plot
+st.write("Color Gradient: The varying shades of blue represent different PM2.5 levels. Darker shades indicate higher concentrations, while lighter shades indicate lower concentrations.")
+theta = np.linspace(0, 2 * np.pi, len(wind_data), endpoint=False)
+bars = ax.bar(theta, wind_data.values, align='center', color=colors, alpha=0.5)
+ax.set_xticks(theta)
+ax.set_xticklabels(wind_data.index)
+plt.title('PM2.5 Levels by Wind Direction from 2013 to 2017')
+st.pyplot(fig)
 
 st.subheader('Conclusion')
 st.write(""" 
-- Users can explore this dashboard to understand air quality trends
-- This dashboard offers various interactive visualization of all pollutant distribution
-- Provides insight the distribution of air quality and wind affects, assisting in monitoring and mitigating the impact of air pollution
+- The dashboard provides an overview of PM2.5 levels across different years and wind directions.
+- This analysis helps monitor and understand how PM2.5 levels are affected by wind conditions.
+- Strong wind from the NE direction tends to reduce PM2.5 levels, while low wind from SSE contributes to higher pollution levels.
 """)
-
-
